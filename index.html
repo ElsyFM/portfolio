@@ -318,7 +318,7 @@
                     <p class="text-xs text-cyber-cyan/70">Initiate an encrypted signal // Commissions, technical collaborations, or art inquiries.</p>
                 </div>
 
-                <form action="https://formspree.io/f/xnpjaywy" method="POST" class="space-y-4">
+                <form id="contact-form" action="https://formspree.io/f/xnpjaywy" method="POST" class="space-y-4">
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs text-cyber-cyan mb-1 uppercase font-bold">Callsign / Name</label>
@@ -743,11 +743,12 @@
 
         document.querySelectorAll('#filter-buttons button').forEach(btn => {
             btn.addEventListener('click', () => {
+                renderGallery();
                 playAudioTone(500, 'sine', 0.08);
                 document.querySelectorAll('#filter-buttons button').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
                 currentFilter = btn.getAttribute('data-filter');
-                renderGallery();
+                
             });
         });
 
@@ -895,11 +896,11 @@
             setTimeout(() => status.classList.add('hidden'), 5000);
         };
 
-        window.onload = () => {
+        document.addEventListener('DOMContentLoaded', () => {
             resizeCanvas();
             renderStars();
-            renderGallery();
-        };
+            renderGallery(); // <--- Renders art & projects immediately on load!
+        });
     </script>
 </body>
 </html>
