@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en" class="dark scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Elsy_Fuentes // Space Art & Tech Gallery</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        cyber: {
+                            black: '#030509',
+                            dark: '#080d1a',
+                            card: 'rgba(10, 16, 30, 0.88)',
+                            cyan: '#00f0ff',
+                            pink: '#ff007f',
+                            purple: '#a855f7',
+                            yellow: '#facc15',
+                            green: '#39ff14'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['Courier New', 'Consolas', 'monospace']
+                    },
+                    animation: {
+                        'pulse-glow': 'pulseGlow 2s infinite alternate',
+                        'float': 'float 5s ease-in-out infinite'
+                    },
+                    keyframes: {
+                        pulseGlow: {
+                            '0%': { boxShadow: '0 0 5px rgba(0, 240, 255, 0.4), 0 0 10px rgba(0, 240, 255, 0.2)' },
+                            '100%': { boxShadow: '0 0 20px rgba(0, 240, 255, 0.8), 0 0 30px rgba(255, 0, 127, 0.5)' }
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0px)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #030509;
+            color: #00f0ff;
+            font-family: 'Courier New', Consolas, monospace;
+            overflow-x: hidden;
+        }
+
+        /* CRT Scanline Overlay */
+        .scanlines {
+            background: linear-gradient(
+                rgba(18, 16, 16, 0) 50%, 
+                rgba(0, 0, 0, 0.4) 50%
+            ), linear-gradient(
+                90deg,
+                rgba(255, 0, 0, 0.03),
+                rgba(0, 255, 0, 0.01),
+                rgba(0, 0, 255, 0.03)
+            );
+            background-size: 100% 4px, 6px 100%;
+            pointer-events: none;
+        }
+
+        /* Sci-Fi Grid Background */
+        .grid-bg {
+            background-size: 40px 40px;
+            background-image: 
+                linear-gradient(to right, rgba(0, 240, 255, 0.06) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 240, 255, 0.06) 1px, transparent 1px);
+        }
+
+        /* Scrollbar Styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #030509;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #00f0ff;
+            box-shadow: 0 0 10px #00f0ff;
+            border-radius: 2px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #ff007f;
+            box-shadow: 0 0 10px #ff007f;
+        }
+
+        /* Cyberpunk Polygon HUD Clip Path */
+        .cyber-box {
+            position: relative;
+            background: rgba(8, 13, 26, 0.88);
+            border: 1px solid rgba(0, 240, 255, 0.3);
+            backdrop-filter: blur(12px);
+            clip-path: polygon(
+                0 0, 
+                calc(100% - 16px) 0, 
+                100% 16px, 
+                100% 100%, 
+                16px 100%, 
+                0 calc(100% - 16px)
+            );
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cyber-box:hover {
+            border-color: #ff007f;
+            box-shadow: 0 0 25px rgba(255, 0, 127, 0.35), inset 0 0 15px rgba(0, 240, 255, 0.15);
+            transform: translateY(-4px);
+        }
+
+        .cyber-button {
+            position: relative;
+            background: rgba(0, 240, 255, 0.1);
+            border: 1px solid #00f0ff;
+            color: #00f0ff;
+            text-shadow: 0 0 5px #00f0ff;
+            transition: all 0.2s ease;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
+        }
+
+        .cyber-button:hover {
+            background: #ff007f;
+            border-color: #ff007f;
+            color: #ffffff;
+            box-shadow: 0 0 15px #ff007f;
+            text-shadow: 0 0 8px #ffffff;
+        }
+
+        .cyber-button.active {
+            background: #00f0ff;
+            color: #030509;
+            font-weight: bold;
+            box-shadow: 0 0 15px #00f0ff;
+            text-shadow: none;
+        }
+
+        .text-glow-cyan {
+            text-shadow: 0 0 8px rgba(0, 240, 255, 0.8), 0 0 18px rgba(0, 240, 255, 0.4);
+        }
+        .text-glow-pink {
+            text-shadow: 0 0 8px rgba(255, 0, 127, 0.8), 0 0 18px rgba(255, 0, 127, 0.4);
+        }
+
+        #space-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 0;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body class="relative min-h-screen selection:bg-cyber-pink selection:text-white">
+
+    <!-- Interactive Starfield Canvas -->
+    <canvas id="space-canvas"></canvas>
+
+    <!-- CRT Scanline & Grid Overlays -->
+    <div id="scanline-layer" class="scanlines fixed inset-0 z-50 pointer-events-none opacity-80"></div>
+    <div class="grid-bg fixed inset-0 z-0 pointer-events-none opacity-40"></div>
+
+    <header class="sticky top-0 z-40 bg-cyber-black/85 backdrop-blur-md border-b border-cyber-cyan/30 py-3 px-4 md:px-8">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-4">
+            
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="playAudioTone(800, 'sine', 0.1)">
+                <div class="w-10 h-10 border-2 border-cyber-cyan flex items-center justify-center bg-cyber-cyan/10 animate-pulse rounded">
+                    <i class="fa-solid fa-atom text-cyber-cyan text-xl"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black tracking-widest text-glow-cyan text-cyber-cyan flex items-center gap-2">
+                        ELSY<span class="text-cyber-pink text-glow-pink">//</span>FUENTES
+                    </h1>
+                    <p class="text-[10px] text-cyber-cyan/60 tracking-widest">SYS_VER 14.1.4 // MORFEO_PROTOCOL</p>
+                </div>
+            </div>
+
+            <div class="flex items-center space-x-3">
+                <button id="audio-toggle-btn" class="cyber-button px-3 py-1.5 text-xs flex items-center gap-2" title="Toggle Sci-Fi Ambient Synth">
+                    <i id="audio-icon" class="fa-solid fa-volume-xmark"></i>
+                    <span id="audio-status-text" class="hidden sm:inline">AMB_AUDIO: OFF</span>
+                </button>
+
+                <button id="scanline-toggle-btn" class="cyber-button px-3 py-1.5 text-xs flex items-center gap-2" title="Toggle CRT FX">
+                    <i class="fa-solid fa-tv"></i>
+                    <span class="hidden sm:inline">CRT_FX</span>
+                </button>
+
+                <button id="terminal-toggle-btn" class="cyber-button px-3 py-1.5 text-xs flex items-center gap-2 text-cyber-yellow border-cyber-yellow">
+                    <i class="fa-solid fa-terminal"></i>
+                    <span class="hidden sm:inline">TERMINAL</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <div id="terminal-drawer" class="hidden fixed inset-x-0 top-[65px] z-30 bg-cyber-dark/95 border-b-2 border-cyber-pink shadow-2xl p-4 md:p-6 text-sm">
+        <div class="max-w-7xl mx-auto">
+            <div class="flex justify-between items-center border-b border-cyber-cyan/30 pb-2 mb-3">
+                <div class="flex items-center gap-2 text-cyber-pink font-bold">
+                    <i class="fa-solid fa-satellite-dish animate-pulse"></i>
+                    <span>DEEP_SPACE_MISSION_CONTROL_TERMINAL</span>
+                </div>
+                <button id="close-terminal" class="text-cyber-cyan hover:text-cyber-pink transition-colors">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div id="terminal-output" class="bg-black/80 border border-cyber-cyan/30 rounded p-3 h-36 overflow-y-auto font-mono text-xs text-cyber-green flex flex-col space-y-1">
+                <p>> SYSTEM INITIALIZED... READY FOR COMMANDS.</p>
+                <p>> TYPE '<span class="text-cyber-yellow">help</span>' FOR DIRECTORY LISTING.</p>
+            </div>
+
+            <form id="terminal-form" class="mt-3 flex gap-2">
+                <span class="text-cyber-pink font-bold">$</span>
+                <input type="text" id="terminal-input" class="flex-1 bg-transparent border-none outline-none text-cyber-cyan text-xs font-mono placeholder-cyber-cyan/40" placeholder="Type a command (help, status, bio, exhibits, clear)..." autocomplete="off">
+            </form>
+        </div>
+    </div>
+
+    <main class="relative z-10 max-w-7xl mx-auto px-4 md:px-8 py-8">
+
+        <section class="mb-12 text-center md:text-left flex flex-col md:flex-row items-center justify-between gap-8 py-6 border-b border-cyber-cyan/20">
+            <div class="space-y-4 max-w-2xl">
+                <div class="inline-flex items-center gap-2 px-3 py-1 bg-cyber-pink/10 border border-cyber-pink/40 rounded text-cyber-pink text-xs font-bold tracking-widest">
+                    <span class="w-2 h-2 rounded-full bg-cyber-pink animate-ping"></span>
+                    SUBLIME SPACE & EMBEDDED SYSTEMS
+                </div>
+                <h2 class="text-3xl md:text-5xl font-extrabold tracking-wider text-white text-glow-cyan uppercase leading-tight">
+                    SPACE ART  // <br/><span class="text-cyber-pink text-glow-pink">TECH PROJECTS</span>
+                </h2>
+                <p class="text-cyber-cyan/80 text-sm md:text-base leading-relaxed">
+                    Exploring the threshold between traditional acrylics, space science, quadcopters, robots, code, and mangoes.
+                </p>
+                <div class="flex flex-wrap gap-4 pt-2 justify-center md:justify-start">
+                    <a href="#gallery" class="cyber-button px-6 py-2.5 text-sm font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-eye"></i> EXPLORE ARCHIVE
+                    </a>
+                    <a href="#contact" class="cyber-button px-6 py-2.5 text-sm font-bold border-cyber-pink text-cyber-pink hover:bg-cyber-pink hover:text-white flex items-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i> TRANSMIT SIGNAL
+                    </a>
+                </div>
+            </div>
+
+            <div class="cyber-box p-6 w-full md:w-80 space-y-3 border-cyber-cyan/40 animate-float">
+                <div class="text-xs text-cyber-pink font-bold tracking-widest border-b border-cyber-pink/30 pb-2 flex justify-between items-center">
+                    <span class="flex items-center gap-2">
+                        <i class="fa-solid fa-satellite text-cyber-pink"></i> SYS_STATUS
+                    </span>
+                    <span class="text-cyber-green animate-pulse">ONLINE</span>
+                </div>
+                <div class="grid grid-cols-2 gap-3 text-center">
+                    <div class="p-2.5 bg-cyber-cyan/5 border border-cyber-cyan/20 rounded">
+                        <span class="block text-xl font-bold text-cyber-cyan">12</span>
+                        <span class="text-[10px] text-cyber-cyan/60 uppercase">Exhibits</span>
+                    </div>
+                    <div class="p-2.5 bg-cyber-pink/5 border border-cyber-pink/20 rounded">
+                        <span class="block text-xl font-bold text-cyber-pink">08</span>
+                        <span class="text-[10px] text-cyber-pink/60 uppercase">Paintings</span>
+                    </div>
+                    <div class="p-2.5 bg-cyber-purple/5 border border-cyber-purple/20 rounded">
+                        <span class="block text-xl font-bold text-cyber-purple">04</span>
+                        <span class="text-[10px] text-cyber-purple/60 uppercase">Tech Projects</span>
+                    </div>
+                    <div class="p-2.5 bg-cyber-yellow/5 border border-cyber-yellow/20 rounded">
+                        <span class="block text-xl font-bold text-cyber-yellow">100%</span>
+                        <span class="text-[10px] text-cyber-yellow/60 uppercase">Autonomy</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="gallery" class="mb-8 space-y-6">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                
+                <div class="flex flex-wrap gap-2 w-full md:w-auto" id="filter-buttons">
+                    <button data-filter="all" class="cyber-button active px-4 py-2 text-xs font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-border-all"></i> ALL EXHIBITS (12)
+                    </button>
+                    <button data-filter="painting" class="cyber-button px-4 py-2 text-xs font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-palette"></i> PAINTINGS (8)
+                    </button>
+                    <button data-filter="project" class="cyber-button px-4 py-2 text-xs font-bold flex items-center gap-2">
+                        <i class="fa-solid fa-microchip"></i> TECH PROJECTS (4)
+                    </button>
+                </div>
+
+                <div class="relative w-full md:w-72">
+                    <i class="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-cyber-cyan/50 text-xs"></i>
+                    <input type="text" id="search-input" placeholder="SEARCH TAGS, TOOLS, TITLES..." class="w-full pl-9 pr-4 py-2 bg-cyber-dark/80 border border-cyber-cyan/40 rounded text-xs text-cyber-cyan placeholder-cyber-cyan/40 focus:outline-none focus:border-cyber-pink transition-all">
+                </div>
+            </div>
+        </section>
+
+        <section id="gallery-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
+            <!-- Dynamic Content Injected by JS -->
+        </section>
+
+        <section id="contact" class="mb-16">
+            <div class="cyber-box p-6 md:p-10 border-cyber-pink/40 max-w-4xl mx-auto">
+                <div class="text-center mb-8 space-y-2">
+                    <h3 class="text-2xl font-bold text-cyber-pink text-glow-pink tracking-widest uppercase flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-tower-cell"></i> DEEP-SPACE TRANSMISSION TERMINAL
+                    </h3>
+                    <p class="text-xs text-cyber-cyan/70">Initiate an encrypted signal // Commissions, technical collaborations, or art inquiries.</p>
+                </div>
+
+                <form action="https://formspree.io/f/xnpjaywy" method="POST" class="space-y-4">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs text-cyber-cyan mb-1 uppercase font-bold">Callsign / Name</label>
+                            <input type="text" name="name" required placeholder="COMMANDER_ZERO" class="w-full px-4 py-2 bg-cyber-black/80 border border-cyber-cyan/40 rounded text-xs text-cyber-cyan placeholder-cyber-cyan/30 focus:border-cyber-pink focus:outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs text-cyber-cyan mb-1 uppercase font-bold">Frequency / Email</label>
+                            <input type="email" name="email" required placeholder="pilot@nebula.io" class="w-full px-4 py-2 bg-cyber-black/80 border border-cyber-cyan/40 rounded text-xs text-cyber-cyan placeholder-cyber-cyan/30 focus:border-cyber-pink focus:outline-none">
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-xs text-cyber-cyan mb-1 uppercase font-bold">Transmission Message</label>
+                        <textarea rows="4" name="message" required placeholder="State your inquiry, project specs, or message..." class="w-full px-4 py-2 bg-cyber-black/80 border border-cyber-cyan/40 rounded text-xs text-cyber-cyan placeholder-cyber-cyan/30 focus:border-cyber-pink focus:outline-none"></textarea>
+                    </div>
+                    <button type="submit" class="cyber-button w-full py-3 text-sm font-bold border-cyber-pink text-cyber-pink hover:bg-cyber-pink hover:text-white transition-all flex items-center justify-center gap-2">
+                        <i class="fa-solid fa-satellite"></i> BROADCAST ENCRYPTED SIGNAL
+                    </button>
+                </form>
+                <div id="contact-status" class="hidden mt-4 p-3 bg-cyber-cyan/10 border border-cyber-cyan text-xs text-cyber-cyan text-center font-bold"></div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Expanded High-Detail Modal -->
+    <div id="modal-backdrop" class="hidden fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-2 sm:p-4 md:p-6">
+        <div id="modal-container" class="cyber-box bg-cyber-dark/95 border-cyber-pink w-full max-w-6xl max-h-[92vh] overflow-y-auto p-4 md:p-8 relative">
+            <button id="modal-close-btn" class="absolute top-4 right-4 z-20 text-cyber-cyan hover:text-cyber-pink transition-colors bg-black/60 rounded-full p-1">
+                <i class="fa-solid fa-circle-xmark text-2xl md:text-3xl"></i>
+            </button>
+            <div id="modal-content">
+                <!-- Content dynamically injected -->
+            </div>
+        </div>
+    </div>
+
+    <footer class="relative z-10 border-t border-cyber-cyan/20 bg-cyber-black/90 py-6 text-center text-xs text-cyber-cyan/50 space-y-2">
+        <p>© 2026 ELSY FUENTES // ORBITAL_CANVAS</p>
+        <p class="text-[10px]">ALL SYSTEMS NOMINAL // POWERED BY WEBAUDIO & HTML5 CANVAS</p>
+    </footer>
+
+    <script>
+        /* Portfolio Data Archive: 8 Paintings (art1.png - art8.png) + 4 Tech Projects (tec1.png - tec4.png) */
+        const galleryData = [
+    // --- PAINTINGS (art1.jpg to art8.jpg) ---
+    {
+        id: 'paint-1',
+        type: 'painting',
+        title: 'Armagedon',
+        subtitle: 'Acrylic Paint on Canvas',
+        date: '2025-05-12',
+        timeSpent: '15 Hours',
+        tools: ['Acrylic Paint', 'Canvas Panel', 'Detail Brushes'],
+        tags: ['Acrylic', 'Surrealism', 'Planets', 'Space Art'],
+        image: 'assets/art1.png',
+        description: 'A surreal celestial landscape portraying vibrant planetary spheres hovering above warm cosmic horizon waves, blending sci-fi surrealism with classical acryilic painting techniques.',
+        logs: 'Focused on building smooth gradient transitions across the orbital spheres and layering rich magenta and coral under-tones.'
+    },
+    {
+        id: 'proj-1',
+        type: 'project',
+        title: 'FRC Robot Electronics Repair',
+        subtitle: 'Power Distribution & Control System Overhaul',
+        date: '2025-03-15',
+        timeSpent: '65 Hours',
+        tools: ['roboRIO', 'CAN Bus', 'Multimeter', 'Soldering Station'],
+        tags: ['Robotics', 'FRC', 'Electronics', 'Hardware'],
+        image: 'assets/tec1.png',
+        description: 'Hands-on electrical diagnosis and repair for the FIRST Robotics Competition robot, resolving wiring faults, signal noise, and power distribution issues across the main control board.',
+        logs: 'Re-crimped loose CAN bus connections, replaced damaged motor controller wiring, and verified stable signal lines to the roboRIO under peak load.'
+    },
+    {
+        id: 'paint-2',
+        type: 'painting',
+        title: 'Flourescent Dreams',
+        subtitle: 'Acrylic on Canvas',
+        date: '2025-03-20',
+        timeSpent: '35 Hours',
+        tools: ['Acrylic Paint', 'Gold Leaf', 'Gesso Panel', 'Pattern Stencils'],
+        tags: ['Mosaic', 'Geometric', 'Acrylic', 'Gold Leaf'],
+        image: 'assets/art2.png',
+        description: 'An intricate mosaic composition featuring a stylized rocket nozzle firing upward through patterned geometric grid work and metallic embellishments.',
+        logs: 'Hand-tessellated individual grid cells using high-viscosity acrylics and applied genuine gold leaf highlights along the exhaust trail.'
+    },
+    {
+        id: 'paint-3',
+        type: 'painting',
+        title: 'Uncanny Traveller',
+        subtitle: 'Acrylic on Canvas',
+        date: '2025-01-15',
+        timeSpent: '26 Hours',
+        tools: ['Oil Paint', 'India Ink', 'Linen Canvas', 'Palette Knife'],
+        tags: ['Surreal', 'Wormhole', 'Retro-Futurism', 'Oil'],
+        image: 'assets/art3.png',
+        description: 'A retro-futuristic surreal scene exploring gravitational light distortion through a central spiral vortex framed by celestial bodies and stylized figures.',
+        logs: 'Experimented with combining heavy palette knife textures for the planet surfaces with fluid ink linework inside the central wormhole.'
+    },
+    {
+        id: 'proj-4',
+        type: 'project',
+        title: 'Crazyflie Autonomous Training',
+        subtitle: 'Micro-Drone Testing & Bench Setup',
+        date: '2026-07-15',
+        timeSpent: '∞ Hours',
+        tools: ['Crazyflie 2.0', 'UWB Deck', 'Flow Deck', 'C++'],
+        tags: ['Robotics', 'Micro-Drone', 'UWB', 'Hardware'],
+        image: 'assets/tec4.png',
+        description: 'Physical workstation set up for configuring Crazyflie 2.0 micro-drones equipped with Ultra-Wideband (UWB) Loco positioning and optical Flow decks.',
+        logs: 'Calibrated anchor ranging nodes and debugged onboard telemetry streaming for autonomous indoor hover flight.'
+    },
+    {
+        id: 'paint-4',
+        type: 'painting',
+        title: 'Floating Neon',
+        subtitle: 'Acrylic on Canvas',
+        date: '2025-03-10',
+        timeSpent: '20 Hours',
+        tools: ['Acrylic Paint', 'Precision Pens', 'Stretched Canvas'],
+        tags: ['Cyberpunk', 'Circuitry', 'Neon', 'Abstract'],
+        image: 'assets/art4.png',
+        description: 'A vivid neon-purple exploration of interconnected mechanical conduits and circuit lines, bridging industrial engineering with cybernetic aesthetics.',
+        logs: 'Layered fluorescent magenta and cyan paints over deep indigo undercoats to create an illuminated conduit glow.'
+    },
+    {
+        id: 'paint-5',
+        type: 'painting',
+        title: 'Cyber Dreams',
+        subtitle: 'Watercolor on Paper',
+        date: '2025-04-02',
+        timeSpent: '16 Hours',
+        tools: ['Acrylic Paint', 'Colored Pencil', 'Canvas Board'],
+        tags: ['Geometric', 'Isometric', 'Pop Art', 'Space'],
+        image: 'assets/art5.png',
+        description: 'A playful isometric composition featuring geometric 3D polyhedrons floating gracefully through a serene pastel pink cosmos.',
+        logs: 'Mapped out isometric perspective grids prior to painting to ensure geometric precision across all levitating shapes.'
+    },
+    {
+        id: 'proj-3',
+        type: 'project',
+        title: 'Recycled Filament Extruder',
+        subtitle: 'PET Bottle & Failed Print Recycling System',
+        date: '2023-08-10',
+        timeSpent: '90 Hours',
+        tools: ['PID Controller', 'Stepper Motor', 'Heating Block', '3D Printing'],
+        tags: ['Hardware', 'Recycling', 'Filament', 'Sustainability'],
+        image: 'assets/tec3.png',
+        description: 'Custom desktop extruder machine designed to convert recycled plastic bottles and failed 3D prints into usable, high-quality 3D printer filament.',
+        logs: 'Calibrated barrel heat zone PID loops for precise melt temperature control and tuned motor spooling tension for consistent 1.75mm diameter output.'
+    },
+    {
+        id: 'paint-6',
+        type: 'painting',
+        title: 'Puzzled stars',
+        subtitle: 'Watercolor on Paper',
+        date: '2025-09-30',
+        timeSpent: '8 Hours',
+        tools: ['Acrylic', 'Micron Pens', 'Wood Panel'],
+        tags: ['Pattern', 'Op-Art', 'Grid', 'Abstract'],
+        image: 'assets/art6.png',
+        description: 'An optical art piece combining repeating geometric grid tiles with warm yellow sphere accents, capturing structural rhythm and modern abstract patterns.',
+        logs: 'Utilized masking tape and fine-liner ink pens to achieve clean, hard-edge geometric boundaries.'
+    },
+    {
+        id: 'paint-7',
+        type: 'painting',
+        title: 'Moonlit night',
+        subtitle: 'Watercolor on Paper',
+        date: '2025-02-18',
+        timeSpent: '2 Hours',
+        tools: ['Oil Paint', 'Glaze Medium', 'Circular Canvas'],
+        tags: ['Oil', 'Planet', 'Study', 'Realism'],
+        image: 'assets/art7.png',
+        description: 'A detailed atmospheric rendering of an icy planet shrouded in swirling cloud cover, painted on a circular canvas format.',
+        logs: 'Applied multiple thin glazes of ultramarine and titanium white over a dark base to capture cloud depth and light refraction.'
+    },
+
+    {
+        id: 'proj-2',
+        type: 'project',
+        title: 'FIRST Robotics Competition Rig',
+        subtitle: 'Mechanical Assembly & Industrial Automation',
+        date: '2025-04-28',
+        timeSpent: '∞ Hours',
+        tools: ['Aluminium Framing', 'Pneumatics', 'CAN Bus', 'Java'],
+        tags: ['Robotics', 'FRC', 'Engineering', 'Mechanics'],
+        image: 'assets/tec2.png',
+        description: 'Industrial robotics chassis construction featuring heavy-duty aluminum framing, custom gearbox integration, and pneumatics assembly (Team 2152).',
+        logs: 'Assembled drive train chassis, wired motor controllers via CAN bus, and validated autonomous period routines.'
+    },
+    {
+        id: 'paint-8',
+        type: 'painting',
+        title: 'Have No Fear',
+        subtitle: 'Acrylic on Aluminum',
+        date: '2025-05-14',
+        timeSpent: '48 Hours',
+        tools: ['Acrylic', 'Acrylic Ink', 'Canvas'],
+        tags: ['Exoplanet', 'Sci-Fi', 'Acrylic', 'Landscape'],
+        image: 'assets/art.png',
+        description: 'In this painting I wanted to depict my robotics team in our usual enviroment "the surgery room". Our theme was that we were robot doctors.'
+    }
+
+    // --- TECH PROJECTS (tec1.JPG to tec4.JPG) ---
+];
+
+        let audioCtx = null;
+        let ambientOscillator = null;
+        let ambientGain = null;
+        let isAudioPlaying = false;
+
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+        }
+
+        function playAudioTone(freq = 440, type = 'sine', duration = 0.1) {
+            try {
+                initAudio();
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+                gain.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+                osc.start();
+                osc.stop(audioCtx.currentTime + duration);
+            } catch (e) {
+                console.log('Audio muted');
+            }
+        }
+
+        function toggleAmbientAudio() {
+            initAudio();
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            const btn = document.getElementById('audio-toggle-btn');
+            const icon = document.getElementById('audio-icon');
+            const text = document.getElementById('audio-status-text');
+
+            if (!isAudioPlaying) {
+                ambientOscillator = audioCtx.createOscillator();
+                const filter = audioCtx.createBiquadFilter();
+                ambientGain = audioCtx.createGain();
+
+                ambientOscillator.type = 'sawtooth';
+                ambientOscillator.frequency.setValueAtTime(55, audioCtx.currentTime);
+
+                filter.type = 'lowpass';
+                filter.frequency.setValueAtTime(220, audioCtx.currentTime);
+
+                ambientGain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+                ambientGain.gain.linearRampToValueAtTime(0.035, audioCtx.currentTime + 2);
+
+                ambientOscillator.connect(filter);
+                filter.connect(ambientGain);
+                ambientGain.connect(audioCtx.destination);
+
+                ambientOscillator.start();
+                isAudioPlaying = true;
+
+                btn.classList.add('active');
+                icon.className = 'fa-solid fa-volume-high text-cyber-pink';
+                text.innerText = 'AMB_AUDIO: ON';
+                playAudioTone(880, 'sine', 0.2);
+            } else {
+                if (ambientGain) {
+                    ambientGain.gain.linearRampToValueAtTime(0.001, audioCtx.currentTime + 1);
+                    setTimeout(() => {
+                        if (ambientOscillator) ambientOscillator.stop();
+                    }, 1000);
+                }
+                isAudioPlaying = false;
+                btn.classList.remove('active');
+                icon.className = 'fa-solid fa-volume-xmark';
+                text.innerText = 'AMB_AUDIO: OFF';
+            }
+        }
+
+        const canvas = document.getElementById('space-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+        let mouseX = 0;
+        let mouseY = 0;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initStars();
+        }
+
+        function initStars() {
+            stars = [];
+            const count = Math.floor((canvas.width * canvas.height) / 2800);
+            for (let i = 0; i < count; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: Math.random() * 1.8 + 0.2,
+                    color: Math.random() > 0.4 ? '#00f0ff' : (Math.random() > 0.5 ? '#ff007f' : '#ffffff'),
+                    alpha: Math.random(),
+                    speed: Math.random() * 0.3 + 0.1
+                });
+            }
+        }
+
+        function renderStars() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const gradient = ctx.createRadialGradient(
+                canvas.width * 0.7 + (mouseX * 0.02),
+                canvas.height * 0.3 + (mouseY * 0.02),
+                100,
+                canvas.width * 0.5,
+                canvas.height * 0.5,
+                canvas.width
+            );
+            gradient.addColorStop(0, 'rgba(255, 0, 127, 0.08)');
+            gradient.addColorStop(0.5, 'rgba(0, 240, 255, 0.05)');
+            gradient.addColorStop(1, 'rgba(3, 5, 9, 0.95)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            stars.forEach(star => {
+                star.y -= star.speed;
+                if (star.y < 0) {
+                    star.y = canvas.height;
+                    star.x = Math.random() * canvas.width;
+                }
+
+                ctx.beginPath();
+                ctx.arc(
+                    star.x + (mouseX * star.speed * 0.03), 
+                    star.y + (mouseY * star.speed * 0.03), 
+                    star.size, 0, Math.PI * 2
+                );
+                ctx.fillStyle = star.color;
+                ctx.globalAlpha = star.alpha;
+                ctx.fill();
+            });
+
+            requestAnimationFrame(renderStars);
+        }
+
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('mousemove', (e) => {
+            mouseX = e.clientX - window.innerWidth / 2;
+            mouseY = e.clientY - window.innerHeight / 2;
+        });
+
+        let currentFilter = 'all';
+        let searchQuery = '';
+
+        function renderGallery() {
+            const container = document.getElementById('gallery-grid');
+            container.innerHTML = '';
+
+            const filteredItems = galleryData.filter(item => {
+                const matchesFilter = currentFilter === 'all' || item.type === currentFilter;
+                const matchesSearch = item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                      item.tags.some(t => t.toLowerCase().includes(searchQuery.toLowerCase())) ||
+                                      item.tools.some(t => t.toLowerCase().includes(searchQuery.toLowerCase()));
+                return matchesFilter && matchesSearch;
+            });
+
+            if (filteredItems.length === 0) {
+                container.innerHTML = `
+                    <div class="col-span-full py-12 text-center text-cyber-pink border border-cyber-pink/30 cyber-box">
+                        <i class="fa-solid fa-triangle-exclamation text-3xl mb-2 animate-bounce"></i>
+                        <p class="text-sm font-bold tracking-widest">NO ARCHIVAL EXHIBITS MATCH YOUR PARAMS.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filteredItems.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'cyber-box p-4 group cursor-pointer flex flex-col justify-between';
+                card.onclick = () => {
+                    playAudioTone(600, 'triangle', 0.1);
+                    openModal(item);
+                };
+
+                const isPainting = item.type === 'painting';
+                const categoryBadgeColor = isPainting ? 'border-cyber-pink text-cyber-pink' : 'border-cyber-cyan text-cyber-cyan';
+
+                card.innerHTML = `
+                    <div>
+                        <!-- High Visibility Image Container with NO dark gradients or bottom shadows -->
+                        <div class="relative h-64 md:h-72 overflow-hidden rounded mb-4 border border-cyber-cyan/30 group-hover:border-cyber-pink transition-all bg-black/40">
+                            <img src="${item.image}" alt="${item.title}" 
+                                 onerror="this.onerror=null; this.src='https://placehold.co/800x600/080d1a/00f0ff?text=${encodeURIComponent(item.title)}';"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            <span class="absolute top-3 left-3 px-2.5 py-1 text-[10px] font-bold uppercase border bg-black/80 backdrop-blur-sm ${categoryBadgeColor} z-10 shadow-lg">
+                                ${item.type}
+                            </span>
+                        </div>
+
+                        <h3 class="text-xl font-bold text-white group-hover:text-cyber-cyan transition-colors flex items-center justify-between">
+                            <span>${item.title}</span>
+                            <i class="fa-solid fa-arrow-up-right-from-square text-xs opacity-0 group-hover:opacity-100 transition-opacity text-cyber-pink"></i>
+                        </h3>
+                        <p class="text-xs text-cyber-cyan/70 mb-2 font-semibold">${item.subtitle}</p>
+                        <p class="text-xs text-cyber-cyan/60 line-clamp-2 mb-4">${item.description}</p>
+                    </div>
+
+                    <div class="pt-3 border-t border-cyber-cyan/20 flex flex-wrap gap-1">
+                        ${item.tags.map(tag => `<span class="px-2 py-0.5 text-[9px] bg-cyber-cyan/10 border border-cyber-cyan/30 text-cyber-cyan rounded">${tag}</span>`).join('')}
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        document.querySelectorAll('#filter-buttons button').forEach(btn => {
+            btn.addEventListener('click', () => {
+                playAudioTone(500, 'sine', 0.08);
+                document.querySelectorAll('#filter-buttons button').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.getAttribute('data-filter');
+                renderGallery();
+            });
+        });
+
+        document.getElementById('search-input').addEventListener('input', (e) => {
+            searchQuery = e.target.value;
+            renderGallery();
+        });
+
+        const backdrop = document.getElementById('modal-backdrop');
+        const modalContent = document.getElementById('modal-content');
+
+        function openModal(item) {
+            modalContent.innerHTML = `
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                    <!-- Enlarged 7-column artwork viewer with crisp full preview -->
+                    <div class="lg:col-span-7 border-2 border-cyber-pink/60 rounded overflow-hidden relative bg-black flex items-center justify-center min-h-[350px] md:min-h-[500px]">
+                        <img src="${item.image}" alt="${item.title}" 
+                             onerror="this.onerror=null; this.src='https://placehold.co/1000x800/080d1a/ff007f?text=${encodeURIComponent(item.title)}';"
+                             class="w-full h-auto max-h-[70vh] object-contain" />
+                        <div class="absolute bottom-3 right-3 px-3 py-1 bg-black/85 border border-cyber-pink text-[10px] text-cyber-pink font-bold backdrop-blur-sm">
+                            TELEMETRY_VIEW // HI-RES
+                        </div>
+                    </div>
+
+                    <!-- Metadata details panel -->
+                    <div class="lg:col-span-5 space-y-5">
+                        <div>
+                            <div class="flex justify-between items-start gap-2 mb-1">
+                                <h2 class="text-2xl md:text-3xl font-extrabold text-white text-glow-cyan uppercase leading-tight">${item.title}</h2>
+                                <span class="px-2.5 py-1 border border-cyber-cyan text-cyber-cyan text-xs uppercase font-bold shrink-0">${item.type}</span>
+                            </div>
+                            <p class="text-sm text-cyber-pink font-bold">${item.subtitle}</p>
+                        </div>
+
+                        <p class="text-xs md:text-sm text-cyber-cyan/90 leading-relaxed">${item.description}</p>
+
+                        <div class="grid grid-cols-2 gap-3 text-xs bg-cyber-black/90 p-3.5 border border-cyber-cyan/30 rounded">
+                            <div>
+                                <span class="text-cyber-cyan/50 block text-[10px] uppercase font-bold">CREATION_DATE</span>
+                                <span class="text-cyber-cyan font-bold text-sm">${item.date}</span>
+                            </div>
+                            <div>
+                                <span class="text-cyber-cyan/50 block text-[10px] uppercase font-bold">TIME_INVESTED</span>
+                                <span class="text-cyber-yellow font-bold text-sm">${item.timeSpent}</span>
+                            </div>
+                        </div>
+
+                        <div>
+                            <h4 class="text-xs font-bold text-cyber-cyan uppercase mb-2 tracking-wider">EQUIPMENT & SOFTWARE:</h4>
+                            <div class="flex flex-wrap gap-1.5">
+                                ${item.tools.map(tool => `<span class="px-2.5 py-1 bg-cyber-pink/20 border border-cyber-pink/50 text-cyber-pink text-[11px] font-bold rounded">${tool}</span>`).join('')}
+                            </div>
+                        </div>
+
+                        <div class="bg-black/70 p-4 border-l-4 border-cyber-pink text-xs text-cyber-cyan/90 rounded-r">
+                            <span class="text-cyber-pink font-bold block mb-1 uppercase tracking-wider">ARCHIVAL_LOG_NOTE:</span>
+                            "${item.logs}"
+                        </div>
+                    </div>
+                </div>
+            `;
+            backdrop.classList.remove('hidden');
+        }
+
+        document.getElementById('modal-close-btn').onclick = () => {
+            playAudioTone(300, 'sine', 0.1);
+            backdrop.classList.add('hidden');
+        };
+
+        backdrop.onclick = (e) => {
+            if (e.target === backdrop) backdrop.classList.add('hidden');
+        };
+
+        const terminalDrawer = document.getElementById('terminal-drawer');
+        const terminalOutput = document.getElementById('terminal-output');
+        const terminalForm = document.getElementById('terminal-form');
+        const terminalInput = document.getElementById('terminal-input');
+
+        document.getElementById('terminal-toggle-btn').onclick = () => {
+            playAudioTone(700, 'square', 0.1);
+            terminalDrawer.classList.toggle('hidden');
+        };
+
+        document.getElementById('close-terminal').onclick = () => {
+            terminalDrawer.classList.add('hidden');
+        };
+
+        terminalForm.onsubmit = (e) => {
+            e.preventDefault();
+            const cmd = terminalInput.value.trim().toLowerCase();
+            terminalInput.value = '';
+
+            const line = document.createElement('p');
+            line.innerText = `$ ${cmd}`;
+            line.className = 'text-white font-bold';
+            terminalOutput.appendChild(line);
+
+            const res = document.createElement('p');
+            res.className = 'text-cyber-cyan mb-2';
+
+            switch (cmd) {
+                case 'help':
+                    res.innerText = 'COMMANDS: help, status, bio, exhibits, ping, contact, clear';
+                    break;
+                case 'status':
+                    res.innerText = 'SYS_OK // 12 EXHIBITS ONLINE // WEBAUDIO READY // CANVAS PARALLAX ACTIVE';
+                    break;
+                case 'bio':
+                    res.innerText = 'CREATOR: Elsy Fuentes — Cyberpunk space artist & tech developer bridging physical paint with hardware and code.';
+                    break;
+                case 'exhibits':
+                    res.innerText = `TOTAL ITEMS: ${galleryData.length} (8 Paintings [art1.png..art8.png] & 4 Tech Projects [tec1.png..tec4.png])`;
+                    break;
+                case 'ping':
+                    res.innerText = 'PONG! Latency: 8ms // Orbital link stable.';
+                    break;
+                case 'contact':
+                    res.innerText = 'DIRECT TRANSMISSION: DISPATCH SIGNAL VIA THE FORM AT THE BOTTOM OF THE PAGE.';
+                    break;
+                case 'clear':
+                    terminalOutput.innerHTML = '';
+                    return;
+                default:
+                    res.innerText = `UNKNOWN COMMAND '${cmd}'. TYPE 'help' FOR SYSTEM DIRECTORY.`;
+                    res.className = 'text-cyber-pink';
+            }
+            terminalOutput.appendChild(res);
+            terminalOutput.scrollTop = terminalOutput.scrollHeight;
+        };
+
+        document.getElementById('audio-toggle-btn').onclick = toggleAmbientAudio;
+
+        document.getElementById('scanline-toggle-btn').onclick = () => {
+            playAudioTone(600, 'sine', 0.1);
+            document.getElementById('scanline-layer').classList.toggle('hidden');
+        };
+
+        document.getElementById('contact-form').onsubmit = (e) => {
+            e.preventDefault();
+            playAudioTone(900, 'sine', 0.2);
+            const status = document.getElementById('contact-status');
+            status.innerText = 'TRANSMISSION SUCCESSFUL // Encrypted signal dispatched to creator terminal.';
+            status.classList.remove('hidden');
+            e.target.reset();
+            setTimeout(() => status.classList.add('hidden'), 5000);
+        };
+
+        window.onload = () => {
+            resizeCanvas();
+            renderStars();
+            renderGallery();
+        };
+    </script>
+</body>
+</html>
